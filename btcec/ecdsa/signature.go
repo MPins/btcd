@@ -254,3 +254,21 @@ func RecoverCompact(signature, hash []byte) (*btcec.PublicKey, bool, error) {
 func Sign(key *btcec.PrivateKey, hash []byte) *Signature {
 	return secp_ecdsa.Sign(key, hash)
 }
+
+// VerifyLowS verifies that the given ECDSA signature is strictly DER-encoded
+// and uses a canonical low-S value. It returns nil if the signature is valid;
+// otherwise it returns the encountered error.
+func VerifyLowS(sigStr []byte) error {
+	sig, err := parseSig(sigStr, true)
+	if err != nil {
+		return err
+	}
+	sValue := sig.S()
+	if sValue.IsOverHalfOrder() {
+		// High-S, s > N/2.
+		return fmt.Errorf("signature is not canonical due to unnecessarily " +
+			"high S value")
+	}
+	// Low-S, s <= N/2.
+	return nil
+}
